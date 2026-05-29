@@ -127,7 +127,6 @@ export const App: React.FC<AppProps> = (props) => {
   const deleteBranchesExplicit = props.deleteBranchesExplicit ?? false
   const remote = props.remote ?? 'origin'
 
-  const { exit } = useApp()
   const [git] = useState(() => new GitService(process.cwd()))
   const [stage, setStage] = useState<Stage>(() => {
     const init = computeInitial(props)
@@ -144,8 +143,9 @@ export const App: React.FC<AppProps> = (props) => {
   } | null>(() => normalizeFilter(props.initialFilter, props.initialPattern))
   const [error, setError] = useState<string | null>(null)
 
+  const { exit } = useApp()
   useInput((_input, key) => {
-    if (key.ctrl && _input === 'c') exit()
+    if (key.ctrl && _input === 'c') exit(new Error('Aborted by user'))
   })
 
   const stateView = useMemo(() => {

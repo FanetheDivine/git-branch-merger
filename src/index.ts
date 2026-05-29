@@ -35,5 +35,10 @@ function parseArgs(argv: string[]): AppProps {
   return props
 }
 
+process.on('SIGINT', () => process.exit(130))
+
 const props = parseArgs(process.argv.slice(2))
-render(React.createElement(App, props))
+const instance = render(React.createElement(App, props), { exitOnCtrlC: false })
+instance.waitUntilExit().catch(() => {
+  process.exit(130)
+})
