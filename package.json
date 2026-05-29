@@ -1,6 +1,6 @@
 {
   "name": "git-branch-merger",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "分支合并工具：交互式按选定顺序把多个本地分支依次合并到 target",
   "type": "module",
   "repository": {
