@@ -1,4 +1,4 @@
-name: Release
+name: Publish
 
 on:
   push:
@@ -35,12 +35,4 @@ jobs:
         run: pnpm build
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
-
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --title "$GITHUB_REF_NAME" \
-            --generate-notes
+        run: npm publish
