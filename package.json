@@ -8,7 +8,7 @@
     "url": "git+https://github.com/FanetheDivine/git-branch-merger.git"
   },
   "bin": {
-    "git-branch-merger": "./dist/index.js"
+    "git-branch-merger": "dist/index.js"
   },
   "files": [
     "dist"
