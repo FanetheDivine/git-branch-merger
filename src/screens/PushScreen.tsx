@@ -9,7 +9,6 @@ interface Props {
   remote: string
   enabled: boolean
   worktreePath: string | null
-  onLog: (...lines: string[]) => void
   onDone: (outcome: PushOutcome | null) => void
 }
 
@@ -19,7 +18,6 @@ export const PushScreen: React.FC<Props> = ({
   remote,
   enabled,
   worktreePath,
-  onLog,
   onDone,
 }) => {
   const [done, setDone] = useState(false)
@@ -45,7 +43,7 @@ export const PushScreen: React.FC<Props> = ({
     return () => {
       cancelled = true
     }
-  }, [git, target, remote, enabled, worktreePath, onLog])
+  }, [git, target, remote, enabled, worktreePath])
 
   if (!enabled) {
     return <Text dimColor>跳过 push…</Text>

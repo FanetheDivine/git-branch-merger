@@ -11,8 +11,11 @@ interface Props {
   enabled: boolean
   worktreePath: string | null
   worktreeCreated: boolean
-  onLog: (...lines: string[]) => void
-  onDone: (outcomes: DeleteOutcome[], cleanedWorktree: boolean) => void
+  onDone: (
+    outcomes: DeleteOutcome[],
+    cleanedWorktree: boolean,
+    cleanupError?: string,
+  ) => void
 }
 
 export const DeleteScreen: React.FC<Props> = ({
@@ -23,7 +26,6 @@ export const DeleteScreen: React.FC<Props> = ({
   enabled,
   worktreePath,
   worktreeCreated,
-  onLog,
   onDone,
 }) => {
   const [outcomes, setOutcomes] = useState<DeleteOutcome[]>([])
@@ -57,21 +59,22 @@ export const DeleteScreen: React.FC<Props> = ({
       }
 
       let cleaned = false
+      let cleanupError: string | undefined
       if (worktreeCreated && worktreePath) {
         try {
           await git.removeWorktree(worktreePath)
           cleaned = true
         } catch (err: any) {
-          onLog(`worktree 清理失败: ${String(err?.message ?? err)}`)
+          cleanupError = String(err?.message ?? err)
         }
       }
 
-      if (!cancelled) onDoneRef.current(collected, cleaned)
+      if (!cancelled) onDoneRef.current(collected, cleaned, cleanupError)
     })()
     return () => {
       cancelled = true
     }
-  }, [git, target, branches, remote, enabled, worktreePath, worktreeCreated, onLog])
+  }, [git, target, branches, remote, enabled, worktreePath, worktreeCreated])
 
   if (!enabled) {
     return <Text dimColor>跳过分支删除…</Text>

@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react'
-import { Box, Static, Text } from 'ink'
+import React, { useMemo, useState } from 'react'
+import { Box, Text, useApp, useInput } from 'ink'
 import { GitService } from './git.js'
 import { BranchListScreen } from './screens/BranchListScreen.js'
 import { DeleteScreen } from './screens/DeleteScreen.js'
@@ -52,11 +52,7 @@ function styleLog(line: string): LogStyle {
   if (line === '已推送至远程') return { color: 'green', bold: true }
   if (line === '已删除合并的分支') return { color: 'green', bold: true }
   if (line === '已清理 worktree') return { color: 'gray' }
-  if (line.includes('合并冲突') || line.includes('合并中断')) return { color: 'red', bold: true }
-  if (line.includes('push 失败') || line.includes('推送失败')) return { color: 'red', bold: true }
-  if (line.includes('部分失败')) return { color: 'yellow' }
   if (line.includes('worktree 清理失败')) return { color: 'yellow' }
-  if (line.includes('错误')) return { color: 'red' }
   return {}
 }
 
@@ -69,6 +65,8 @@ export interface Stage {
   aborted?: boolean
   worktreePath?: string | null
   worktreeCreated?: boolean
+  worktreeCleaned?: boolean
+  worktreeCleanupError?: string
   pushOutcome?: PushOutcome | null
   deleteOutcomes?: DeleteOutcome[]
   pushEnabled?: boolean
@@ -129,6 +127,7 @@ export const App: React.FC<AppProps> = (props) => {
   const deleteBranchesExplicit = props.deleteBranchesExplicit ?? false
   const remote = props.remote ?? 'origin'
 
+  const { exit } = useApp()
   const [git] = useState(() => new GitService(process.cwd()))
   const [stage, setStage] = useState<Stage>(() => {
     const init = computeInitial(props)
@@ -144,11 +143,10 @@ export const App: React.FC<AppProps> = (props) => {
     pattern: string
   } | null>(() => normalizeFilter(props.initialFilter, props.initialPattern))
   const [error, setError] = useState<string | null>(null)
-  const [logs, setLogs] = useState<string[]>([])
 
-  const addLog = useCallback((...lines: string[]) => {
-    setLogs((prev) => [...prev, ...lines])
-  }, [])
+  useInput((_input, key) => {
+    if (key.ctrl && _input === 'c') exit()
+  })
 
   const stateView = useMemo(() => {
     const lines: string[] = []
@@ -169,8 +167,30 @@ export const App: React.FC<AppProps> = (props) => {
         lines.push(`${idx + 1}. ${branch}${suffix}`)
       })
     }
+    if (stage.worktreePath && !stage.worktreeCleaned) {
+      lines.push(`worktree ${stage.worktreePath}`)
+    }
+    const pastMerge =
+      stage.step === 'pushing' || stage.step === 'deleting' || stage.step === 'result'
+    if (
+      !stage.aborted &&
+      pastMerge &&
+      stage.outcomes &&
+      stage.outcomes.length > 0 &&
+      stage.outcomes.every((o) => o.status === 'success')
+    ) {
+      lines.push('所有分支已合并')
+    }
+    if (stage.pushOutcome?.ok) lines.push('已推送至远程')
+    if (stage.deleteBranchesEnabled && stage.deleteOutcomes !== undefined) {
+      lines.push('已删除合并的分支')
+    }
+    if (stage.worktreeCleaned) lines.push('已清理 worktree')
+    if (stage.worktreeCleanupError) {
+      lines.push(`worktree 清理失败: ${stage.worktreeCleanupError}`)
+    }
     return lines
-  }, [stage.selection, stage.chosen, stage.outcomes])
+  }, [stage])
 
   const renderActive = () => {
     if (error) {
@@ -244,9 +264,7 @@ export const App: React.FC<AppProps> = (props) => {
           git={git}
           target={stage.selection.target}
           branches={stage.branches}
-          onLog={addLog}
           onDone={(outcomes, aborted, worktreePath, worktreeCreated) => {
-            if (!aborted) addLog('所有分支已合并')
             setStage((prev) => ({
               ...prev,
               step: aborted ? 'result' : 'pushing',
@@ -269,11 +287,7 @@ export const App: React.FC<AppProps> = (props) => {
           remote={remote}
           enabled={pushOn}
           worktreePath={stage.worktreePath ?? null}
-          onLog={addLog}
           onDone={(outcome) => {
-            if (pushOn && outcome && outcome.ok) {
-              addLog('已推送至远程')
-            }
             const pushFailed = pushOn && outcome && !outcome.ok
             setStage((prev) => ({
               ...prev,
@@ -297,15 +311,13 @@ export const App: React.FC<AppProps> = (props) => {
           enabled={deleteOn}
           worktreePath={stage.worktreePath ?? null}
           worktreeCreated={stage.worktreeCreated ?? false}
-          onLog={addLog}
-          onDone={(outcomes, cleanedWorktree) => {
-            if (deleteOn) addLog('已删除合并的分支')
-            if (cleanedWorktree) addLog('已清理 worktree')
+          onDone={(outcomes, cleanedWorktree, cleanupError) => {
             setStage((prev) => ({
               ...prev,
               step: 'result',
               deleteOutcomes: outcomes,
-              worktreePath: cleanedWorktree ? null : prev.worktreePath,
+              worktreeCleaned: cleanedWorktree,
+              worktreeCleanupError: cleanupError,
             }))
           }}
         />
@@ -318,9 +330,9 @@ export const App: React.FC<AppProps> = (props) => {
           outcomes={stage.outcomes ?? []}
           aborted={stage.aborted ?? false}
           worktreePath={stage.worktreePath ?? null}
+          worktreeCleaned={stage.worktreeCleaned ?? false}
           pushOutcome={stage.pushOutcome ?? null}
           deleteOutcomes={stage.deleteOutcomes ?? []}
-          onLog={addLog}
         />
       )
     }
@@ -342,16 +354,6 @@ export const App: React.FC<AppProps> = (props) => {
           })}
         </Box>
       )}
-      <Static items={logs}>
-        {(line, idx) => {
-          const style = styleLog(line)
-          return (
-            <Text key={idx} {...style}>
-              {line}
-            </Text>
-          )
-        }}
-      </Static>
       {renderActive()}
     </Box>
   )

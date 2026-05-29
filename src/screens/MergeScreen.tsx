@@ -10,7 +10,6 @@ interface Props {
   git: GitService
   target: string
   branches: string[]
-  onLog: (...lines: string[]) => void
   onDone: (
     outcomes: MergeOutcome[],
     aborted: boolean,
@@ -19,7 +18,7 @@ interface Props {
   ) => void
 }
 
-export const MergeScreen: React.FC<Props> = ({ git, target, branches, onLog, onDone }) => {
+export const MergeScreen: React.FC<Props> = ({ git, target, branches, onDone }) => {
   const [outcomes, setOutcomes] = useState<MergeOutcome[]>([])
   const [current, setCurrent] = useState<string | null>(null)
   const [worktreeInfo, setWorktreeInfo] = useState<{ path: string; created: boolean } | null>(null)
@@ -56,7 +55,6 @@ export const MergeScreen: React.FC<Props> = ({ git, target, branches, onLog, onD
           mergeGit = new GitService(worktreePath)
           if (!cancelled) {
             setWorktreeInfo({ path: worktreePath, created: createdWorktree })
-            onLog(`worktree ${worktreePath}`)
           }
         }
       } catch (err: any) {
@@ -89,7 +87,7 @@ export const MergeScreen: React.FC<Props> = ({ git, target, branches, onLog, onD
     return () => {
       cancelled = true
     }
-  }, [git, target, branches, onLog])
+  }, [git, target, branches])
 
   return (
     <Box flexDirection='column'>
