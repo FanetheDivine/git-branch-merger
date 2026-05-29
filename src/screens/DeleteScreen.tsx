@@ -11,11 +11,7 @@ interface Props {
   enabled: boolean
   worktreePath: string | null
   worktreeCreated: boolean
-  onDone: (
-    outcomes: DeleteOutcome[],
-    cleanedWorktree: boolean,
-    cleanupError?: string,
-  ) => void
+  onDone: (outcomes: DeleteOutcome[], cleanedWorktree: boolean, cleanupError?: string) => void
 }
 
 export const DeleteScreen: React.FC<Props> = ({

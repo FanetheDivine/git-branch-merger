@@ -37,7 +37,7 @@ export const ResultScreen: React.FC<Props> = ({
             合并冲突: {conflict.branch}
           </Text>
           {showWorktree && <Text color='yellow'>worktree {worktreePath}</Text>}
-          <Text>解决步骤: 1) 解决冲突文件  2) git add ...  3) git commit  4) 重新运行本工具</Text>
+          <Text>解决步骤: 1) 解决冲突文件 2) git add ... 3) git commit 4) 重新运行本工具</Text>
           {conflict.message && <Text dimColor>详情: {conflict.message.split(/\r?\n/)[0]}</Text>}
         </Box>
       )}
